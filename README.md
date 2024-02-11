@@ -1,7 +1,7 @@
 # BookstoreAPI 
 This project contains the code for CRUD operations of Online Bookstore.
 
-command to run this project
+command to run this project - 
    python manage.py runserver
 
 swagger API document url
