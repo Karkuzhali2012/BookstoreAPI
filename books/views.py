@@ -2,18 +2,18 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from books.models import Author, Book
-from books.serializers import AuthorSerializer, BookSerializer
+from books.serializers import AuthorSerializer, BookSerializer, PaginationSerializer
 from django.http import Http404
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
-
+from books.utilities import round_up
 
 class AuthorListView(APIView):
    
     #Listing all the author
     def get(self, request):
         """
-        API endpoint for listing all authors.
+        API endpoint for listing all authors without pagination
 
         - Method: GET
         - Response: List of all authors with details.
@@ -138,13 +138,65 @@ class AuthorDetailView(APIView):
         """
 
         author = self.get_object(id)
-        # books = Book.objects.filter(author=id)
-        # print(books)
-        # books.delete()
         author.delete()
         return Response({
             "status": 1, 
             "message": "Author details deleted successfully"}, status = status.HTTP_200_OK
+        )
+class GetAuthorList(APIView):
+
+    #Listing all author details ---> Pagination Added
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'page': openapi.Schema(type=openapi.TYPE_INTEGER),
+                'page_size': openapi.Schema(type=openapi.TYPE_INTEGER),
+            },
+            required=['page', 'page_size']
+        ),
+        responses={status.HTTP_200_OK: AuthorSerializer()}
+    )
+
+    def post(self, request):
+        """
+        API endpoint for listing all author details with pagination
+
+        - Method: POST
+        - Input: Pagination details (page, page_size)
+        - Response:  List of all authors with details.
+        - URL: /api/listing-all-authors/
+        """
+        serializer = PaginationSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response({
+                "status": 0, 
+                "message": serializer.errors}, status = status.HTTP_400_BAD_REQUEST
+            )
+        page = serializer.validated_data.get('page')
+        page_size = serializer.validated_data.get('page_size')
+
+        # Calculate skip value for pagination
+        skip = (page - 1) * page_size
+
+        # Retrieve paginated authors
+        authors = Author.objects.all()[skip: skip + page_size]
+        serializer = AuthorSerializer(authors, many=True)
+        total_records = Author.objects.all().count()
+        num_pages = (total_records / page_size)
+        num_pages = round_up(num_pages)
+        return Response({
+            "status":  1,
+            "message": "Author details retrieved successfully",
+            "paginator":  {
+                "total_records": total_records,
+                "total_pages":num_pages,
+                "current_page":page,
+                "current_page_size": len(serializer.data),
+                'next_page': None if (num_pages == page or total_records == 0) else (page+1),
+                'previous_page': (page-1),
+            },
+            "data": serializer.data}, status = status.HTTP_200_OK
         )
 
 class BookListView(APIView):
@@ -283,4 +335,60 @@ class BookDetailView(APIView):
         return Response({
             "status": 1, 
             "message": "Book details deleted successfully"}, status = status.HTTP_200_OK
+        )
+
+class GetBookList(APIView):
+    
+    #Listing all book details ---> Pagination Added
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'page': openapi.Schema(type=openapi.TYPE_INTEGER),
+                'page_size': openapi.Schema(type=openapi.TYPE_INTEGER),
+            },
+            required=['page', 'page_size']
+        ),
+        responses={status.HTTP_200_OK: BookSerializer()}
+    )
+
+    def post(self, request):
+        """
+        API endpoint for listing all book details with pagination
+
+        - Method: POST
+        - Input: Pagination details (page, page_size)
+        - Response:  List of all book with details.
+        - URL: /api/listing-all-books/
+        """
+        serializer = PaginationSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response({
+                "status": 0, 
+                "message": serializer.errors}, status = status.HTTP_400_BAD_REQUEST
+            )
+        page = serializer.validated_data.get('page')
+        page_size = serializer.validated_data.get('page_size')
+
+        # Calculate skip value for pagination
+        skip = (page - 1) * page_size
+
+        # Retrieve paginated books
+        books = Book.objects.all()[skip: skip + page_size]
+        serializer = BookSerializer(books, many=True)
+        total_records = Book.objects.all().count()
+        num_pages = (total_records / page_size)
+        num_pages = round_up(num_pages)
+        return Response({
+            "status":  1,
+            "message": "Book details retrieved successfully",
+            "paginator":  {
+                "total_records": total_records,
+                "total_pages":num_pages,
+                "current_page":page,
+                "current_page_size": len(serializer.data),
+                'next_page': None if (num_pages == page or total_records == 0) else (page+1),
+                'previous_page': (page-1),
+            },
+            "data": serializer.data}, status = status.HTTP_200_OK
         )
