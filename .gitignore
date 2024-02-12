@@ -20,6 +20,7 @@ pip-delete-this-directory.txt
 
 # Local Project:
 *.log
+db.sqlite3
 
 # Byte-compiled / Cache / optimized / DLL files
 __pycache__/
@@ -30,3 +31,5 @@ __pycache__/
 .DS_Store
 db_schema.txt
 
+# Only for Development only
+**/migrations/*
