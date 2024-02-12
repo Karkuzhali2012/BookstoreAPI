@@ -3,11 +3,6 @@ This project contains the code for CRUD operations of Online Bookstore.
 
 In this project, I can use the default sqlite database.
 
-command for migrations - 
-  1.python manage.py makemigrations 
-  
-  2.python manage.py migrate
-
 command to run this project - 
   python manage.py runserver
 
